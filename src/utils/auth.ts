@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { exec } from 'child_process'
-import { execa } from 'execa'
+import { execa, execaSync } from 'execa'
 import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
@@ -1070,11 +1070,20 @@ export const getApiKeyFromConfigOrMacOSKeychain = memoize(
       } else {
         const storageServiceName = getMacOsKeychainStorageServiceName()
         try {
-          const result = execSyncWithDefaults_DEPRECATED(
-            `security find-generic-password -a $USER -w -s "${storageServiceName}"`,
+          const result = execaSync(
+            'security',
+            [
+              'find-generic-password',
+              '-a',
+              getUsername(),
+              '-w',
+              '-s',
+              storageServiceName,
+            ],
+            { reject: false },
           )
-          if (result) {
-            return { key: result, source: '/login managed key' }
+          if (result.stdout) {
+            return { key: result.stdout.trim(), source: '/login managed key' }
           }
         } catch (e) {
           logError(e)
@@ -1118,7 +1127,10 @@ export async function saveApiKey(apiKey: string): Promise<void> {
       // Use security's interactive mode (-i) with -X (hexadecimal) option
       // This ensures credentials never appear in process command-line arguments
       // Process monitors only see "security -i", not the password
-      const command = `add-generic-password -U -a "${username}" -s "${storageServiceName}" -X "${hexValue}"\n`
+      // Escape backslashes, quotes, and newlines to prevent command injection in security's interactive shell
+      const escapedUsername = username.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')
+      const escapedStorageServiceName = storageServiceName.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')
+      const command = `add-generic-password -U -a "${escapedUsername}" -s "${escapedStorageServiceName}" -X "${hexValue}"\n`
 
       await execa('security', ['-i'], {
         input: command,

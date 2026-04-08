@@ -245,14 +245,8 @@ function PluginComponentsDisplay({
           }
 
           // Get base file names from all command paths
-          const commandList: string[] = [];
-          for (const commandPath of commandPathList) {
-            if (typeof commandPath === 'string') {
-              // commandPath is already a full path
-              const baseNames = await getBaseFileNames(commandPath);
-              commandList.push(...baseNames);
-            }
-          }
+          const commandListResults = await Promise.all(commandPathList.filter(cp => typeof cp === 'string').map(cp => getBaseFileNames(cp as string)));
+          const commandList = commandListResults.flat();
 
           // Combine agents from both sources
           const agentPathList = [];
@@ -264,14 +258,8 @@ function PluginComponentsDisplay({
           }
 
           // Get base file names from all agent paths
-          const agentList: string[] = [];
-          for (const agentPath of agentPathList) {
-            if (typeof agentPath === 'string') {
-              // agentPath is already a full path
-              const baseNames_0 = await getBaseFileNames(agentPath);
-              agentList.push(...baseNames_0);
-            }
-          }
+          const agentListResults = await Promise.all(agentPathList.filter(ap => typeof ap === 'string').map(ap => getBaseFileNames(ap as string)));
+          const agentList = agentListResults.flat();
 
           // Combine skills from both sources
           const skillPathList = [];
@@ -284,14 +272,8 @@ function PluginComponentsDisplay({
 
           // Get skill directory names from all skill paths
           // Skills are directories containing SKILL.md files
-          const skillList: string[] = [];
-          for (const skillPath of skillPathList) {
-            if (typeof skillPath === 'string') {
-              // skillPath is already a full path to a skills directory
-              const skillDirNames = await getSkillDirNames(skillPath);
-              skillList.push(...skillDirNames);
-            }
-          }
+          const skillListResults = await Promise.all(skillPathList.filter(sp => typeof sp === 'string').map(sp => getSkillDirNames(sp as string)));
+          const skillList = skillListResults.flat();
 
           // Combine hooks from both sources
           const hooksList = [];

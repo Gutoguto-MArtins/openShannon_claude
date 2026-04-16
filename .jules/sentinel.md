@@ -1,0 +1,4 @@
+## 2025-03-05 - Command Injection in which function
+**Vulnerability:** The `which` and `whichSync` functions in `src/utils/which.ts` take user input (`command`) and directly interpolate it into a shell command string using `shell: true` (or via `execSync_DEPRECATED`, which implicitly uses a shell). This allows for command injection if an attacker can control the argument passed to `which`.
+**Learning:** `execa` with `shell: true` and string interpolation is a common pattern for shell injection vulnerabilities in Node.js. `execSync` does exactly the same.
+**Prevention:** Avoid `shell: true`. Pass arguments as an array instead. For `execa`, use `execa('which', [command])`. For sync execution, prefer `execaSync` without `shell: true` or native `which` implementations. If `execSync` must be used, arguments must be strictly sanitized or a library like `cross-spawn` (or `execFileSync` instead of `execSync`) should be used.

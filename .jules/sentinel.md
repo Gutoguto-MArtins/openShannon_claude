@@ -1,0 +1,4 @@
+## 2025-02-28 - Command Injection in Utility Functions
+**Vulnerability:** The `whichNodeAsync` and `whichNodeSync` utility functions were using string interpolation in shell commands (`where.exe ${command}` and `which ${command}`) with `shell: true` (or via `execSync_DEPRECATED`), allowing arbitrary shell command injection if an attacker controlled the `command` variable.
+**Learning:** Even simple lookup utilities can introduce critical command injection flaws if input is not properly separated from the command structure using argument arrays. Using wrapper functions that implicitly invoke a shell (like `execSync_DEPRECATED`) hides this risk.
+**Prevention:** Always use argument arrays with `shell: false` (e.g., `execa('which', [command])` or `execFileSync('which', [command])`) when executing sub-processes, ensuring user input is treated as data, not executable code.

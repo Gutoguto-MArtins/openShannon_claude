@@ -1,0 +1,4 @@
+## 2024-05-21 - Command Injection Prevention in Utils
+**Vulnerability:** Found a Command Injection vulnerability in `src/utils/which.ts`. The `whichNodeAsync` used `execa` with `shell: true` and concatenated unsanitized user input (`command`) into the shell command string (e.g. `which ${command}`). `whichNodeSync` used `execSync_DEPRECATED` which acts similarly by invoking a shell.
+**Learning:** Shell-evaluated string concatenation with `execa` (`shell: true`) or Node's `execSync` presents high risks when handling dynamically constructed commands, even for basic utility functions like `which`.
+**Prevention:** Use array-based argument passing with native `execa` and disable shell evaluation (do not use `shell: true`). Use `execaSync` instead of `execSync_DEPRECATED` to avoid blocking synchronous shell vulnerabilities.

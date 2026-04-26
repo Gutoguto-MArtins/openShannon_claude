@@ -1,0 +1,4 @@
+## 2024-05-18 - Path Existence Check Command Injection
+**Vulnerability:** A command injection vulnerability was discovered in `checkPathExists` from `src/utils/windowsPaths.ts`. It used `execSync_DEPRECATED(\`dir "${path}"\`)` to verify path existence. An attacker could potentially pass a path with double quotes or shell metacharacters through environment variables (like `CLAUDE_CODE_GIT_BASH_PATH`) to execute arbitrary commands.
+**Learning:** Checking file or directory existence using shell commands (`dir` or `ls`) via `execSync` is inherently unsafe because path strings might contain shell metacharacters that cause command injection. This risk is amplified when standard variables like `TEMP` or custom variables point to untrusted paths.
+**Prevention:** Always use the native Node.js API `fs.existsSync(path)` or `fs.statSync` to check for file existence instead of spawning a shell command.

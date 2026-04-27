@@ -1,0 +1,4 @@
+## 2025-02-24 - Fix Command Injection in Path Checking
+**Vulnerability:** Found a command injection vulnerability in `src/utils/windowsPaths.ts`. `checkPathExists` used a shell execution (`execSync_DEPRECATED('dir "' + path + '"')`) to check for file existence, which could execute arbitrary commands via unsanitized strings from environment variables like `CLAUDE_CODE_GIT_BASH_PATH`.
+**Learning:** `execSync_DEPRECATED` and similar functions with default `shell: true` are dangerous wrappers when paired with external input. While `process.env` properties may seem innocuous, relying on `dir` to verify paths introduces a systemic weakness.
+**Prevention:** Always use Node.js built-in core filesystem APIs (e.g., `fs.existsSync` or `fs.promises.stat`) for native file path validation. Never shell out for simple operations.

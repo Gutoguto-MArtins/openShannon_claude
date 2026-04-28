@@ -5,8 +5,9 @@ export async function maybeRemoveApiKeyFromMacOSKeychainThrows(): Promise<void> 
   if (process.platform === 'darwin') {
     const storageServiceName = getMacOsKeychainStorageServiceName()
     const result = await execa(
-      `security delete-generic-password -a $USER -s "${storageServiceName}"`,
-      { shell: true, reject: false },
+      'security',
+      ['delete-generic-password', '-a', process.env.USER || process.env.LOGNAME || '', '-s', storageServiceName],
+      { reject: false },
     )
     if (result.exitCode !== 0) {
       throw new Error('Failed to delete keychain entry')

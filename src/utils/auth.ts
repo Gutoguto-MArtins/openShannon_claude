@@ -3,6 +3,7 @@ import { exec } from 'child_process'
 import { execa } from 'execa'
 import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
+import { parse as shellQuoteParse } from 'shell-quote'
 import { join } from 'path'
 import { CLAUDE_AI_PROFILE_SCOPE } from 'src/constants/oauth.js'
 import {
@@ -560,8 +561,13 @@ async function _executeApiKeyHelper(
     }
   }
 
-  const result = await execa(apiKeyHelper, {
-    shell: true,
+  const [command, ...args] = shellQuoteParse(apiKeyHelper) as string[]
+
+  if (!command) {
+    throw new Error('apiKeyHelper config is empty or invalid')
+  }
+
+  const result = await execa(command, args, {
     timeout: 10 * 60 * 1000,
     reject: false,
   })
@@ -745,8 +751,13 @@ async function getAwsCredsFromCredentialExport(): Promise<{
     // only actually do the export if caller-identity calls
     try {
       logForDebugging('Running AWS credential export command')
-      const result = await execa(awsCredentialExport, {
-        shell: true,
+      const [command, ...args] = shellQuoteParse(awsCredentialExport) as string[]
+
+      if (!command) {
+        throw new Error('awsCredentialExport config is empty or invalid')
+      }
+
+      const result = await execa(command, args, {
         reject: false,
       })
       if (result.exitCode !== 0 || !result.stdout) {

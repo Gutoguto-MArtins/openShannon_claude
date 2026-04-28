@@ -3,12 +3,13 @@ import {
   formatPastedTextRef,
   getPastedTextRefNumLines,
 } from '../history.js'
+import { execaSync } from 'execa'
 import instances from '../ink/instances.js'
 import type { PastedContent } from './config.js'
 import { classifyGuiEditor, getExternalEditor } from './editor.js'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
 import { getFsImplementation } from './fsOperations.js'
 import { toIDEDisplayName } from './ide.js'
+import { parse } from 'shell-quote'
 import { writeFileSync_DEPRECATED } from './slowOperations.js'
 import { generateTempFilePath } from './tempfile.js'
 
@@ -66,8 +67,24 @@ export function editFileInEditor(filePath: string): EditorResult {
   try {
     // Use override command if available, otherwise use the editor as-is
     const editorCommand = EDITOR_OVERRIDES[editor] ?? editor
-    execSync_DEPRECATED(`${editorCommand} "${filePath}"`, {
+
+    const parsedCommand = parse(editorCommand)
+    // Filter out potential objects returned by parse, just keep strings
+    const strArgs = parsedCommand.filter(
+      (arg): arg is string => typeof arg === 'string',
+    )
+
+    if (strArgs.length === 0) {
+      return { content: null }
+    }
+
+    const [cmd, ...args] = strArgs
+    const commandArgs = [...args, filePath]
+
+    execaSync(cmd!, commandArgs, {
       stdio: 'inherit',
+      shell: false,
+      reject: false,
     })
 
     // Read the edited content

@@ -1,3 +1,4 @@
+import * as fs from 'fs'
 import memoize from 'lodash-es/memoize.js'
 import * as path from 'path'
 import * as pathWin32 from 'path/win32'
@@ -8,14 +9,13 @@ import { memoizeWithLRU } from './memoize.js'
 import { getPlatform } from './platform.js'
 
 /**
- * Check if a file or directory exists on Windows using the dir command
+ * Check if a file or directory exists on Windows
  * @param path - The path to check
  * @returns true if the path exists, false otherwise
  */
 function checkPathExists(path: string): boolean {
   try {
-    execSync_DEPRECATED(`dir "${path}"`, { stdio: 'pipe' })
-    return true
+    return fs.existsSync(path)
   } catch {
     return false
   }

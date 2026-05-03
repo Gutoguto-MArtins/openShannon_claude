@@ -1,0 +1,4 @@
+## 2025-02-14 - Prevent Command Injection in `which` Utility
+**Vulnerability:** The `whichNodeAsync` and `whichNodeSync` utilities were using string interpolation `which ${command}` and `where.exe ${command}` with `shell: true` (or the equivalent through `execSync_DEPRECATED`) to find executables. This allowed for command injection if an attacker could control the `command` variable being searched for.
+**Learning:** Even simple utility functions like `which` that seem harmless can be vulnerable if they construct shell strings out of unvalidated input, especially when interacting with the system's PATH.
+**Prevention:** Always use `execa` or `execaSync` with array arguments (`[command]`) and `{ shell: false }` rather than string interpolation with `{ shell: true }` when constructing external commands, to prevent the shell from parsing malicious characters or command sequences.

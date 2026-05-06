@@ -1,0 +1,4 @@
+## 2025-02-14 - Fix Command Injection in which and where.exe invocations
+**Vulnerability:** Shell command injection via `shell: true` and string interpolation when calling `which` and `where.exe` to check for binary availability in `src/utils/which.ts`.
+**Learning:** `execSync_DEPRECATED` inherently evaluates strings as shell commands and `execa` with `shell: true` also parses the input string through the system shell. When dynamic variables like `command` are passed directly into these string templates, it enables shell command injection (e.g. `ls; rm -rf /`).
+**Prevention:** Avoid `shell: true` and use `execa` with arguments as an array (`execa('which', [command])`). For synchronous operations, use native `child_process.execFileSync` which safely escapes array arguments, instead of wrappers like `execSync_DEPRECATED` which rely on string commands.

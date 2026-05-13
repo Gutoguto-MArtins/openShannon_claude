@@ -1,0 +1,4 @@
+## 2025-02-28 - Refactoring Shell Commands and User Configurations
+**Vulnerability:** Static commands with dynamic parts executed with `shell: true` (e.g. `which ${command}`) can lead to command injection if the dynamic part is an environment variable or user input.
+**Learning:** For user-configured shell scripts (like `apiKeyHelper`), removing `shell: true` causes regressions because those user-configured scripts often rely heavily on shell-specific functions, pipes, and variables. However, internal commands without expected shell complexities (like `which/where.exe` or `gh --version`) should be securely executed with argument arrays to prevent injection.
+**Prevention:** Avoid `shell: true` for internal execution of static or simple dynamic commands. Pass arguments as arrays using `execa` or `execaSync` when no shell specific interpretation is required.

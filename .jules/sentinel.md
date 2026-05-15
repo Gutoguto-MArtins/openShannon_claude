@@ -1,0 +1,4 @@
+## 2025-02-14 - Fix Command Injection in which.ts and GitHub App Installer
+**Vulnerability:** Found uses of `shell: true` with unsafe string interpolation for shell execution in `src/utils/which.ts` (e.g., ``execa(`where.exe ${command}`, { shell: true })``) and `src/commands/install-github-app/install-github-app.tsx`.
+**Learning:** `execa` calls with `shell: true` coupled with unfiltered external input like `${command}` pose a severe command injection risk. Also, `execSync_DEPRECATED` wraps Node's `execSync` which spawns a shell and suffers the same vulnerability class.
+**Prevention:** Always default to using `execa` or `execaSync` with array-based arguments and `shell: false` (e.g., `execa('which', [command], { shell: false })`). Avoid `execSync_DEPRECATED` altogether in favor of `execaSync` without shell features unless explicitly needed and tightly controlled (like in auth modules).

@@ -1,0 +1,4 @@
+## 2024-05-19 - [CRITICAL] Fix command injection in which utility
+**Vulnerability:** The `which` and `whichSync` functions in `src/utils/which.ts` were vulnerable to command injection because they concatenated user input directly into a shell command (`which ${command}` or `where.exe ${command}`) and executed it with `shell: true` (for `execa`) or using `execSync_DEPRECATED` (which runs in a shell).
+**Learning:** Using `shell: true` or `execSync_DEPRECATED` with user-provided arguments in shell commands allows attackers to execute arbitrary code (e.g., passing `node; rm -rf /` as the argument).
+**Prevention:** Always use `execa` or `execaSync` with `shell: false` and pass arguments as an array instead of concatenating them into a command string. If a shell is absolutely required, user input must be properly quoted/escaped.

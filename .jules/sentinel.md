@@ -1,0 +1,4 @@
+## 2025-02-20 - Command Injection in Dynamic Shell Commands
+**Vulnerability:** The functions `whichNodeAsync` and `whichNodeSync` accepted user-controlled or variable input and passed it directly into dynamic command strings via `execa` with `shell: true` and `execSync_DEPRECATED`. This allowed executing arbitrary shell commands by using metacharacters such as `&&` or `;`.
+**Learning:** Using `shell: true` or shell wrappers like `execSync` with variable arguments without proper sanitization leads to command injection vulnerabilities. `execa` should be used with the command and arguments passed as an array and `shell: false`.
+**Prevention:** When executing shell commands dynamically, especially with user input, always use array arguments with `execa` or `execaSync` and strictly configure `{ shell: false }`. Avoid `execSync` wrapper entirely, as it invokes commands within a shell by default.

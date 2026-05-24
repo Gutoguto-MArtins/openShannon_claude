@@ -1,11 +1,11 @@
+import { execFileSync } from 'child_process'
 import { execa } from 'execa'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
 
 async function whichNodeAsync(command: string): Promise<string | null> {
   if (process.platform === 'win32') {
     // On Windows, use where.exe and return the first result
-    const result = await execa(`where.exe ${command}`, {
-      shell: true,
+    const result = await execa('where.exe', [command], {
+      shell: false,
       stderr: 'ignore',
       reject: false,
     })
@@ -19,8 +19,8 @@ async function whichNodeAsync(command: string): Promise<string | null> {
   // On POSIX systems (macOS, Linux, WSL), use which
   // Cross-platform safe: Windows is handled above
   // eslint-disable-next-line custom-rules/no-cross-platform-process-issues
-  const result = await execa(`which ${command}`, {
-    shell: true,
+  const result = await execa('which', [command], {
+    shell: false,
     stderr: 'ignore',
     reject: false,
   })
@@ -33,9 +33,10 @@ async function whichNodeAsync(command: string): Promise<string | null> {
 function whichNodeSync(command: string): string | null {
   if (process.platform === 'win32') {
     try {
-      const result = execSync_DEPRECATED(`where.exe ${command}`, {
+      const result = execFileSync('where.exe', [command], {
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
+        shell: false,
       })
       const output = result.toString().trim()
       return output.split(/\r?\n/)[0] || null
@@ -45,9 +46,10 @@ function whichNodeSync(command: string): string | null {
   }
 
   try {
-    const result = execSync_DEPRECATED(`which ${command}`, {
+    const result = execFileSync('which', [command], {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      shell: false,
     })
     return result.toString().trim() || null
   } catch {

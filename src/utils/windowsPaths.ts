@@ -1,4 +1,5 @@
 import memoize from 'lodash-es/memoize.js'
+import { execaSync } from 'execa'
 import * as path from 'path'
 import * as pathWin32 from 'path/win32'
 import { getCwd } from './cwd.js'
@@ -6,16 +7,17 @@ import { logForDebugging } from './debug.js'
 import { execSync_DEPRECATED } from './execSyncWrapper.js'
 import { memoizeWithLRU } from './memoize.js'
 import { getPlatform } from './platform.js'
+import { getFsImplementation } from './fsOperations.js'
 
 /**
  * Check if a file or directory exists on Windows using the dir command
  * @param path - The path to check
  * @returns true if the path exists, false otherwise
  */
-function checkPathExists(path: string): boolean {
+function checkPathExists(pathStr: string): boolean {
   try {
-    execSync_DEPRECATED(`dir "${path}"`, { stdio: 'pipe' })
-    return true
+    const fsImpl = getFsImplementation()
+    return fsImpl.existsSync(pathStr)
   } catch {
     return false
   }
@@ -46,10 +48,12 @@ function findExecutable(executable: string): string | null {
 
   // Fall back to where.exe
   try {
-    const result = execSync_DEPRECATED(`where.exe ${executable}`, {
+    const result = execaSync('where.exe', [executable], {
+      shell: false,
       stdio: 'pipe',
       encoding: 'utf8',
-    }).trim()
+      reject: false,
+    }).stdout.trim()
 
     // SECURITY: Filter out any results from the current directory
     // to prevent executing malicious git.bat/cmd/exe files

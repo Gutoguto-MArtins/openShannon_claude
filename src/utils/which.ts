@@ -4,8 +4,8 @@ import { execSync_DEPRECATED } from './execSyncWrapper.js'
 async function whichNodeAsync(command: string): Promise<string | null> {
   if (process.platform === 'win32') {
     // On Windows, use where.exe and return the first result
-    const result = await execa(`where.exe ${command}`, {
-      shell: true,
+    const result = await execa('where.exe', [command], {
+      shell: false,
       stderr: 'ignore',
       reject: false,
     })
@@ -19,8 +19,8 @@ async function whichNodeAsync(command: string): Promise<string | null> {
   // On POSIX systems (macOS, Linux, WSL), use which
   // Cross-platform safe: Windows is handled above
   // eslint-disable-next-line custom-rules/no-cross-platform-process-issues
-  const result = await execa(`which ${command}`, {
-    shell: true,
+  const result = await execa('which', [command], {
+    shell: false,
     stderr: 'ignore',
     reject: false,
   })

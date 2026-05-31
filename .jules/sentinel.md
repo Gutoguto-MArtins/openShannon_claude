@@ -1,0 +1,4 @@
+## 2024-05-31 - [Command Injection via execSync/execa String Interpolation]
+**Vulnerability:** Found instances in `src/utils/which.ts` and `src/utils/windowsPaths.ts` where unescaped user inputs were interpolated directly into shell command strings executed via `execSync_DEPRECATED` (e.g. `dir "${path}"` and `where.exe ${executable}`) and `execa` with `shell: true`.
+**Learning:** Using string interpolation with `shell: true` allows arbitrary command injection by using shell meta-characters (like `&`, `;`, or `|`) inside the input string.
+**Prevention:** Replace instances of string interpolation in shell commands with array arguments (`execa('command', [arg1, arg2])`), which correctly passes the input as a single argument without shell interpretation. Replace `dir` checks with native `fs.existsSync`.

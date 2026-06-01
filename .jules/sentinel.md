@@ -1,0 +1,4 @@
+## 2025-02-24 - [Command Injection] Fix command injection in which and whichSync
+**Vulnerability:** The `which` and `whichSync` utilities in `src/utils/which.ts` were passing arbitrary string inputs (command names) into shell commands like \`which ${command}\` using `execa` with `{ shell: true }` or `execSync_DEPRECATED`. This allowed command injection if a malicious string like `ls; touch pwned` was provided.
+**Learning:** Using `execa` with `shell: true` or custom wrappers like `execSync_DEPRECATED` that run strings directly in a shell will lead to command injection when user input is incorporated into the command string.
+**Prevention:** Always use `execa` or `execaSync` with `shell: false` and supply arguments as an array instead of concatenating them. Replace all usage of `execSync_DEPRECATED` with `execaSync` properly.

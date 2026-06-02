@@ -1,9 +1,10 @@
+import { execaSync } from 'execa'
 import memoize from 'lodash-es/memoize.js'
 import * as path from 'path'
 import * as pathWin32 from 'path/win32'
 import { getCwd } from './cwd.js'
 import { logForDebugging } from './debug.js'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
+import { getFsImplementation } from './fsOperations.js'
 import { memoizeWithLRU } from './memoize.js'
 import { getPlatform } from './platform.js'
 
@@ -14,8 +15,8 @@ import { getPlatform } from './platform.js'
  */
 function checkPathExists(path: string): boolean {
   try {
-    execSync_DEPRECATED(`dir "${path}"`, { stdio: 'pipe' })
-    return true
+    const fs = getFsImplementation()
+    return fs.existsSync(path)
   } catch {
     return false
   }
@@ -46,14 +47,20 @@ function findExecutable(executable: string): string | null {
 
   // Fall back to where.exe
   try {
-    const result = execSync_DEPRECATED(`where.exe ${executable}`, {
+    const result = execaSync('where.exe', [executable], {
+      shell: false,
       stdio: 'pipe',
       encoding: 'utf8',
-    }).trim()
+      reject: false,
+    })
+
+    if (result.exitCode !== 0 || !result.stdout) {
+      return null
+    }
 
     // SECURITY: Filter out any results from the current directory
     // to prevent executing malicious git.bat/cmd/exe files
-    const paths = result.split('\r\n').filter(Boolean)
+    const paths = result.stdout.trim().split('\r\n').filter(Boolean)
     const cwd = getCwd().toLowerCase()
 
     for (const candidatePath of paths) {

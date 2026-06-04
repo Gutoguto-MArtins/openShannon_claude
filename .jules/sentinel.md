@@ -1,0 +1,4 @@
+## 2025-06-04 - Command Injection in `which.ts`
+**Vulnerability:** The `which.ts` utility functions (`which` and `whichSync`) concatenated user-provided command strings directly into shell commands (e.g., `await execa(\`which ${command}\`, { shell: true })`). This allowed command injection if the input contained shell metacharacters like `;`, `&&`, or `|`.
+**Learning:** Even simple utility functions like looking up an executable path can be vectors for command injection if they rely on shell execution. Wrapping execution calls in `shell: true` exposes any dynamic input to evaluation by the system shell.
+**Prevention:** Always use `shell: false` (the default in `execa`) and pass dynamic inputs as items in an arguments array (e.g., `execa('which', [command])`) or use `child_process.execFileSync` without a shell. This ensures the input is treated strictly as an argument to the executable, avoiding shell parsing entirely.

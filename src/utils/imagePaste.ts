@@ -58,9 +58,18 @@ function getClipboardCommands() {
 
   // Platform-specific temporary file paths
   // Use CLAUDE_CODE_TMPDIR if set, otherwise fall back to platform defaults
-  const baseTmpDir =
+  const rawBaseTmpDir =
     process.env.CLAUDE_CODE_TMPDIR ||
     (platform === 'win32' ? process.env.TEMP || 'C:\\Temp' : '/tmp')
+
+  // Sanitize to prevent command injection from user-controlled environment variables
+  // Because `screenshotPath` is interpolated into both single-quoted (macOS, win32) and
+  // double-quoted (linux) shell strings, we must strictly reject both quote types.
+  const isMalicious = /[";'|`$&<>]/
+  const baseTmpDir = isMalicious.test(rawBaseTmpDir)
+    ? (platform === 'win32' ? 'C:\\Temp' : '/tmp')
+    : rawBaseTmpDir
+
   const screenshotFilename = 'claude_cli_latest_screenshot.png'
   const tempPaths: Record<SupportedPlatform, string> = {
     darwin: join(baseTmpDir, screenshotFilename),
@@ -77,28 +86,24 @@ function getClipboardCommands() {
       checkImage: string
       saveImage: string
       getPath: string
-      deleteFile: string
     }
   > = {
     darwin: {
       checkImage: `osascript -e 'the clipboard as «class PNGf»'`,
       saveImage: `osascript -e 'set png_data to (the clipboard as «class PNGf»)' -e 'set fp to open for access POSIX file "${screenshotPath}" with write permission' -e 'write png_data to fp' -e 'close access fp'`,
       getPath: `osascript -e 'get POSIX path of (the clipboard as «class furl»)'`,
-      deleteFile: `rm -f "${screenshotPath}"`,
     },
     linux: {
       checkImage: buildLinuxClipboardCheckCommand(),
       saveImage: buildLinuxClipboardSaveCommand(screenshotPath),
       getPath:
         'xclip -selection clipboard -t text/plain -o 2>/dev/null || wl-paste 2>/dev/null',
-      deleteFile: `rm -f "${screenshotPath}"`,
     },
     win32: {
       checkImage:
         'powershell -NoProfile -Command "(Get-Clipboard -Format Image) -ne $null"',
       saveImage: `powershell -NoProfile -Command "$img = Get-Clipboard -Format Image; if ($img) { $img.Save('${screenshotPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png) }"`,
       getPath: 'powershell -NoProfile -Command "Get-Clipboard"',
-      deleteFile: `del /f "${screenshotPath}"`,
     },
   }
 
@@ -253,7 +258,9 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
     const mediaType = detectImageFormatFromBase64(base64Image)
 
     // Cleanup (fire-and-forget, don't await)
-    void execa(commands.deleteFile, { shell: true, reject: false })
+    void getFsImplementation()
+      .unlink(screenshotPath)
+      .catch(e => logError(e as Error))
 
     return {
       base64: base64Image,

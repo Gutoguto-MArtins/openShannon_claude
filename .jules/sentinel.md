@@ -1,0 +1,5 @@
+
+## 2024-05-20 - Command Injection via Temporary Directory Environment Variables
+**Vulnerability:** Shell execution of commands in `src/utils/imagePaste.ts` (e.g., file deletion, saving images from clipboard via `osascript`, `xclip`, or `powershell`) interpolated the user-controlled environment variable `CLAUDE_CODE_TMPDIR` (and `TEMP` on win32) without sanitization. An attacker could set `CLAUDE_CODE_TMPDIR` to `"; echo "PWNED"; #"` leading to arbitrary shell command execution when `execa` was run with `shell: true`.
+**Learning:** Environment variables that influence dynamically constructed paths used in shell commands must be treated as untrusted input. Even "internal" configuration variables like temp dir paths can be vectors for injection if the application inherits them.
+**Prevention:** Sanitize environment variables against shell metacharacters before using them in shell command interpolations (e.g., checking `/[";'|\`$&<>]/`), and prefer internal NodeJS APIs (like `fs.promises.unlink`) over shell commands (`rm -f`) for file system operations.

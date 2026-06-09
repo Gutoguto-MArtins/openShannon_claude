@@ -1,0 +1,5 @@
+
+## 2024-05-18 - [Command Injection via execSync/execa with shell: true in Utilities]
+**Vulnerability:** The `whichNodeAsync` and `whichNodeSync` utilities were using template string interpolation (`` `where.exe ${command}` `` and `` `which ${command}` ``) in `execa` with `shell: true` and the deprecated `execSync_DEPRECATED` which acts as `shell: true`. This allows arbitrary shell commands to be injected by appending shell operators (e.g., `&& touch pwned`) directly into the argument string.
+**Learning:** Utilities intended to wrap static system executables (like `which`, `where`, `gh`) should never use string interpolation with shells, as any malicious user input parsed anywhere in the application could potentially trickle down to these lower-level utilities and lead to arbitrary code execution without warning.
+**Prevention:** Always use safe array-based argument passing (`execa('which', [command], { shell: false })`) for deterministic system commands to prevent input evaluation by the shell. Avoid `execSync_DEPRECATED` or Node's `child_process.exec`, preferring `execaSync` with `shell: false` instead.

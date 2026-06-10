@@ -1,0 +1,4 @@
+## 2024-06-10 - Command Injection in which() utilities
+**Vulnerability:** The `which()` and `whichSync()` utilities in `src/utils/which.ts` used `execa("which " + command, { shell: true })` and `execSync_DEPRECATED("which " + command)`. This allowed command injection if an unsanitized command string containing shell operators (e.g., `node; echo pwned`) was passed.
+**Learning:** Utilities that execute platform binaries like `which` or `where.exe` must never use `shell: true` with unsanitized input. Using `execSync_DEPRECATED` inherently wraps standard child_process.execSync which also executes in a shell.
+**Prevention:** Always use `execa` or `execaSync` with `shell: false` and pass the target executable (e.g., `which`) and arguments as an array (`['which', [command]]`). This avoids interpretation of shell meta-characters.

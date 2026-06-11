@@ -1,0 +1,4 @@
+## 2025-06-11 - Command Injection in Utility Shell Wrappers
+**Vulnerability:** A command injection vulnerability existed in `src/utils/which.ts` where user-provided command strings were directly interpolated into shell commands (`where.exe ${command}` or `which ${command}`) and executed via `execa` with `shell: true` and Node's synchronous exec wrappers. This pattern allowed attackers to append malicious operators (e.g., `; echo pwned`) and run arbitrary shell commands.
+**Learning:** Wrapping basic OS utilities like `which` or `where` using shell string interpolation (`${cmd}`) is inherently vulnerable if the command variable can contain untrusted input.
+**Prevention:** Always construct such wrappers using an array of arguments and explicitly passing `shell: false`. For example, `execa('which', [command], { shell: false })` ensures that the argument is passed safely to the executable without shell interpretation.

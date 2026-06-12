@@ -1,0 +1,4 @@
+## 2024-06-12 - Command Injection in `which` utility via `shell: true`
+**Vulnerability:** The `whichNodeAsync` and `whichNodeSync` functions in `src/utils/which.ts` were interpolating an unvalidated `command` string into shell executions (`which ${command}` and `where.exe ${command}`) using `execa` and `execSync_DEPRECATED` with `{ shell: true }`. This allowed command injection if an attacker could control the `command` argument.
+**Learning:** Even low-level utility functions like `which` must avoid string interpolation and shell evaluation if they accept external input. The deprecated `execSync_DEPRECATED` synchronous wrapper was also inherently dangerous since it relied on `shell: true`.
+**Prevention:** Always use `execa` or native `child_process` methods with `{ shell: false }` and pass arguments as an array (`execa('which', [command], { shell: false })`). For synchronous operations, prefer `execaSync` similarly avoiding shell features.

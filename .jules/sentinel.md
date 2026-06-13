@@ -1,0 +1,4 @@
+## 2025-02-28 - Command Injection Risk in Shell Executions with Interpolated Paths
+**Vulnerability:** Shell execution of dynamically interpolated file paths (from environment variables like `CLAUDE_CODE_TMPDIR`) in `imagePaste.ts`. Command string construction with `shell: true` and interpolated paths is unsafe and can lead to command injection.
+**Learning:** For dynamic variables injected into `shell: true` contexts across various OS APIs (like `osascript` or `powershell`), environment variables are a safe, built-in vector to pass un-interpolated variables safely across the execution boundary. For simple native tasks like file deletion (`rm -f`), replace `shell: true` strings with direct `fs` native API calls (e.g., `unlinkSync`).
+**Prevention:** Avoid interpolating variables into commands executed with `shell: true`. Either pass the variables via the `env` object or use Node's native file system APIs where appropriate.

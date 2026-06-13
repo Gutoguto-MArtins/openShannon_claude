@@ -46,10 +46,10 @@ export function buildLinuxClipboardCheckCommand(): string {
   return `xclip -selection clipboard -t TARGETS -o 2>/dev/null | grep -E "${mimePattern}" || wl-paste -l 2>/dev/null | grep -E "${mimePattern}"`
 }
 
-export function buildLinuxClipboardSaveCommand(screenshotPath: string): string {
+export function buildLinuxClipboardSaveCommand(): string {
   return LINUX_CLIPBOARD_IMAGE_MIME_TYPES.flatMap(mimeType => [
-    `xclip -selection clipboard -t ${mimeType} -o > "${screenshotPath}" 2>/dev/null`,
-    `wl-paste --type ${mimeType} > "${screenshotPath}" 2>/dev/null`,
+    `xclip -selection clipboard -t ${mimeType} -o > "$SCREENSHOT_PATH" 2>/dev/null`,
+    `wl-paste --type ${mimeType} > "$SCREENSHOT_PATH" 2>/dev/null`,
   ]).join(' || ')
 }
 
@@ -77,28 +77,24 @@ function getClipboardCommands() {
       checkImage: string
       saveImage: string
       getPath: string
-      deleteFile: string
     }
   > = {
     darwin: {
       checkImage: `osascript -e 'the clipboard as «class PNGf»'`,
-      saveImage: `osascript -e 'set png_data to (the clipboard as «class PNGf»)' -e 'set fp to open for access POSIX file "${screenshotPath}" with write permission' -e 'write png_data to fp' -e 'close access fp'`,
+      saveImage: `osascript -e 'set png_data to (the clipboard as «class PNGf»)' -e 'set fp to open for access POSIX file (system attribute "SCREENSHOT_PATH") with write permission' -e 'write png_data to fp' -e 'close access fp'`,
       getPath: `osascript -e 'get POSIX path of (the clipboard as «class furl»)'`,
-      deleteFile: `rm -f "${screenshotPath}"`,
     },
     linux: {
       checkImage: buildLinuxClipboardCheckCommand(),
-      saveImage: buildLinuxClipboardSaveCommand(screenshotPath),
+      saveImage: buildLinuxClipboardSaveCommand(),
       getPath:
         'xclip -selection clipboard -t text/plain -o 2>/dev/null || wl-paste 2>/dev/null',
-      deleteFile: `rm -f "${screenshotPath}"`,
     },
     win32: {
       checkImage:
         'powershell -NoProfile -Command "(Get-Clipboard -Format Image) -ne $null"',
-      saveImage: `powershell -NoProfile -Command "$img = Get-Clipboard -Format Image; if ($img) { $img.Save('${screenshotPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png) }"`,
+      saveImage: `powershell -NoProfile -Command "$img = Get-Clipboard -Format Image; if ($img) { $img.Save($env:SCREENSHOT_PATH, [System.Drawing.Imaging.ImageFormat]::Png) }"`,
       getPath: 'powershell -NoProfile -Command "Get-Clipboard"',
-      deleteFile: `del /f "${screenshotPath}"`,
     },
   }
 
@@ -222,6 +218,7 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
     const saveResult = await execa(commands.saveImage, {
       shell: true,
       reject: false,
+      env: { ...process.env, SCREENSHOT_PATH: screenshotPath },
     })
     if (saveResult.exitCode !== 0) {
       return null
@@ -253,7 +250,11 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
     const mediaType = detectImageFormatFromBase64(base64Image)
 
     // Cleanup (fire-and-forget, don't await)
-    void execa(commands.deleteFile, { shell: true, reject: false })
+    try {
+      getFsImplementation().unlinkSync(screenshotPath)
+    } catch {
+      // ignore
+    }
 
     return {
       base64: base64Image,

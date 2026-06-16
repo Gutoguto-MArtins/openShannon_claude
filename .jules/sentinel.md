@@ -1,0 +1,4 @@
+## 2025-02-28 - [Avoid `shell: true` with User Input in Utilities]
+**Vulnerability:** Command injection was possible in `whichNodeAsync` and `whichNodeSync` because `execa` and `execSync_DEPRECATED` were called with `shell: true` and unsanitized command inputs were interpolated into the shell command string (e.g. ``execa(`which ${command}`, { shell: true })``). An attacker could pass a malicious string like `node; echo PWNED` to execute arbitrary commands.
+**Learning:** Even internal utility functions like `which` must treat their inputs as potentially unsafe. The use of `shell: true` exposes these utilities to command injection risks when input contains shell metacharacters.
+**Prevention:** Avoid using `shell: true` entirely when executing dynamic or user-supplied commands. Use `execa` or `execaSync` with `shell: false` and pass arguments as an array instead of a concatenated string (e.g., `execa('which', [command])`).

@@ -1,0 +1,4 @@
+## 2025-06-17 - Command Injection in Clipboard Image Processing
+**Vulnerability:** Shell command injection via unsanitized `CLAUDE_CODE_TMPDIR` path variable. The variable was directly interpolated into dynamically built bash/powershell/osascript shell commands used by `execa` with `shell: true`.
+**Learning:** Even internal tool-paths or environment variables controlled by the execution environment should not be string-interpolated into shell executions, as malicious environment settings can lead to arbitrary command execution when evaluated by a shell.
+**Prevention:** Avoid string interpolation of environment variables in shell commands. Use environment variable passing (e.g., `process.env`) directly to commands or prefer native `getFsImplementation().unlink()` APIs over shell-based utilities like `rm -f` and `del`.

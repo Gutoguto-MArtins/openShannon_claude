@@ -1,0 +1,4 @@
+## 2025-02-19 - Command Injection in Utility Wrapper
+**Vulnerability:** A command injection vulnerability existed in the `which` utility wrapper (`src/utils/which.ts`). Both `whichNodeAsync` and `whichNodeSync` accepted user-provided command strings and interpolated them directly into shell commands using `execa` with `{ shell: true }` and `execSync_DEPRECATED`.
+**Learning:** Even simple utility functions designed to invoke basic system utilities (like `which` or `where.exe`) can introduce command injection if they use string interpolation to execute with `shell: true` and fail to sanitize inputs. Using `shell: true` should be strictly avoided when the input is external or variable.
+**Prevention:** Use array arguments with `execa` or `execaSync` and set `{ shell: false }` to prevent shell injection, as this safely passes the arguments to the executable without shell evaluation. Replace deprecated wrappers like `execSync_DEPRECATED` with `execaSync`.

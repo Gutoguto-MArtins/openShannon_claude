@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "openclaude",
@@ -43,7 +42,7 @@
         "duck-duck-scrape": "^2.2.7",
         "emoji-regex": "10.6.0",
         "env-paths": "3.0.0",
-        "execa": "9.6.1",
+        "execa": "^9.6.1",
         "fflate": "0.8.2",
         "figures": "6.1.0",
         "fuse.js": "7.1.0",

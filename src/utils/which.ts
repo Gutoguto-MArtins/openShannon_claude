@@ -1,11 +1,10 @@
-import { execa } from 'execa'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
+import { execa, execaSync } from 'execa'
 
 async function whichNodeAsync(command: string): Promise<string | null> {
   if (process.platform === 'win32') {
     // On Windows, use where.exe and return the first result
-    const result = await execa(`where.exe ${command}`, {
-      shell: true,
+    const result = await execa('where.exe', [command], {
+      shell: false,
       stderr: 'ignore',
       reject: false,
     })
@@ -19,8 +18,8 @@ async function whichNodeAsync(command: string): Promise<string | null> {
   // On POSIX systems (macOS, Linux, WSL), use which
   // Cross-platform safe: Windows is handled above
   // eslint-disable-next-line custom-rules/no-cross-platform-process-issues
-  const result = await execa(`which ${command}`, {
-    shell: true,
+  const result = await execa('which', [command], {
+    shell: false,
     stderr: 'ignore',
     reject: false,
   })
@@ -32,27 +31,30 @@ async function whichNodeAsync(command: string): Promise<string | null> {
 
 function whichNodeSync(command: string): string | null {
   if (process.platform === 'win32') {
-    try {
-      const result = execSync_DEPRECATED(`where.exe ${command}`, {
-        encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      })
-      const output = result.toString().trim()
-      return output.split(/\r?\n/)[0] || null
-    } catch {
+    const result = execaSync('where.exe', [command], {
+      shell: false,
+      stderr: 'ignore',
+      reject: false,
+      encoding: 'utf8',
+    })
+    if (result.exitCode !== 0 || !result.stdout) {
       return null
     }
+    return result.stdout.trim().split(/\r?\n/)[0] || null
   }
 
-  try {
-    const result = execSync_DEPRECATED(`which ${command}`, {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-    return result.toString().trim() || null
-  } catch {
+  // Cross-platform safe: Windows is handled above
+  // eslint-disable-next-line custom-rules/no-cross-platform-process-issues
+  const result = execaSync('which', [command], {
+    shell: false,
+    stderr: 'ignore',
+    reject: false,
+    encoding: 'utf8',
+  })
+  if (result.exitCode !== 0 || !result.stdout) {
     return null
   }
+  return result.stdout.trim() || null
 }
 
 const bunWhich =

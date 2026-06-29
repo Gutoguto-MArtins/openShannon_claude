@@ -1,0 +1,4 @@
+## 2025-02-28 - Command Injection Risk in which utility
+**Vulnerability:** Command injection in `which` and `where.exe` lookups due to string concatenation and `shell: true` with dynamic inputs. For example, `whichNodeAsync("node; echo pwned")` would execute the trailing command in the shell environment.
+**Learning:** Utilities checking paths or commands often rely on built-in shell commands like `which` or `where.exe`. Using them with `shell: true` and concatenated strings introduces command injection vectors if the command string originates from or includes unsanitized user input.
+**Prevention:** Always use array argument syntax (e.g. `execa('which', [command])`) and ensure `shell: false` for all external subprocess executions that do not explicitly require shell mechanisms like pipes, particularly when dealing with paths or lookups.

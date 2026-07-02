@@ -1,0 +1,4 @@
+## 2025-02-27 - Command Injection in Path Resolution
+**Vulnerability:** The `which` utility wrapper (`src/utils/which.ts`) concatenated user input into commands like `which ${command}` and `where.exe ${command}` and executed them via `execa` with `shell: true` and `execSync_DEPRECATED`. This allowed command injection if an attacker supplied an executable name containing shell metacharacters like `;`, `&`, or `|`.
+**Learning:** Shell evaluation was incorrectly assumed to be required for resolving paths on POSIX/Windows. Standard OS utilities don't require `shell: true` as long as their arguments are passed cleanly as arrays.
+**Prevention:** Eliminate interpolation of dynamic variables in shell strings. Switch `execa` calls from string-based execution (`execa("cmd " + arg)`) to array-based execution (`execa("cmd", [arg], { shell: false })`). Replace Node's synchronous `execSync` with `execaSync` running `shell: false`.

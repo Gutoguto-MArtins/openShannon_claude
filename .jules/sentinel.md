@@ -1,0 +1,4 @@
+## 2024-07-03 - Command Injection in `which` utility functions
+**Vulnerability:** Command injection in `whichNodeAsync` and `whichNodeSync` via unsanitized command inputs passed to `execa` or `execSync_DEPRECATED` with `{ shell: true }` and template string execution (e.g. ``which ${command}``).
+**Learning:** Utilities resolving system commands often use shell execution for simplicity, but when user-controlled or variable input is passed, `shell: true` allows dangerous shell metacharacters like `;`, `&&`, or pipes to execute arbitrary commands on the host OS. Also, replacing `execSync_DEPRECATED` with `execaSync` requires `'utf8'` instead of `'utf-8'`.
+**Prevention:** Avoid `shell: true`. Always use `execa` or `execaSync` with `shell: false` and pass command name and arguments as a distinct array (`['which', [command]]`). This ensures the OS executes the command directly without shell interpretation.

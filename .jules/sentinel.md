@@ -1,0 +1,4 @@
+## 2024-07-07 - Mitigated Command Injection in Exec Wrapper
+**Vulnerability:** Found unsanitized parameters passed via string interpolation to `execSync_DEPRECATED` and `execa` with `shell: true`, allowing for OS command injection.
+**Learning:** Legacy utility functions executing dynamically constructed strings in subshells represent a critical vector if arguments are not safely parsed. This risk spans standard utility functions (like `which`). Furthermore, checking if a path exists via a shell `dir` command exposes systems to path-based command injection.
+**Prevention:** Eliminate the `shell` boundary. Refactor all shell executions to use structured array arguments with `execa({ shell: false })`. Substitute shell-based path existence checks (`dir`) with direct native filesystem APIs (e.g. `fs.statSync()`).

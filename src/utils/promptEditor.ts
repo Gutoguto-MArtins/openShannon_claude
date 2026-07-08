@@ -3,10 +3,11 @@ import {
   formatPastedTextRef,
   getPastedTextRefNumLines,
 } from '../history.js'
+import { execaSync } from 'execa'
 import instances from '../ink/instances.js'
 import type { PastedContent } from './config.js'
 import { classifyGuiEditor, getExternalEditor } from './editor.js'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
+import { tryParseShellCommand } from './bash/shellQuote.js'
 import { getFsImplementation } from './fsOperations.js'
 import { toIDEDisplayName } from './ide.js'
 import { writeFileSync_DEPRECATED } from './slowOperations.js'
@@ -66,8 +67,36 @@ export function editFileInEditor(filePath: string): EditorResult {
   try {
     // Use override command if available, otherwise use the editor as-is
     const editorCommand = EDITOR_OVERRIDES[editor] ?? editor
-    execSync_DEPRECATED(`${editorCommand} "${filePath}"`, {
+
+    // Parse the editor command securely
+    const parseResult = tryParseShellCommand(editorCommand, process.env)
+
+    if (!parseResult.success || parseResult.tokens.length === 0) {
+      return {
+        content: null,
+        error: parseResult.success
+          ? 'Editor command was empty'
+          : `Failed to parse editor command: ${parseResult.error}`
+      }
+    }
+
+    // Filter out operators, we only want strings for arguments
+    const stringTokens = parseResult.tokens.filter(
+      (token): token is string => typeof token === 'string'
+    )
+
+    if (stringTokens.length === 0) {
+      return { content: null, error: 'Editor command contains no valid executable' }
+    }
+
+    const [executable, ...args] = stringTokens
+
+    // Append the filepath as the final argument
+    args.push(filePath)
+
+    execaSync(executable, args, {
       stdio: 'inherit',
+      shell: false,
     })
 
     // Read the edited content

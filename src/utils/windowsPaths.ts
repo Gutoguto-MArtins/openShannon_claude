@@ -3,18 +3,19 @@ import * as path from 'path'
 import * as pathWin32 from 'path/win32'
 import { getCwd } from './cwd.js'
 import { logForDebugging } from './debug.js'
-import { execSync_DEPRECATED } from './execSyncWrapper.js'
+import { execaSync } from 'execa'
+import * as fs from 'fs'
 import { memoizeWithLRU } from './memoize.js'
 import { getPlatform } from './platform.js'
 
 /**
- * Check if a file or directory exists on Windows using the dir command
+ * Check if a file or directory exists on Windows using the fs module
  * @param path - The path to check
  * @returns true if the path exists, false otherwise
  */
 function checkPathExists(path: string): boolean {
   try {
-    execSync_DEPRECATED(`dir "${path}"`, { stdio: 'pipe' })
+    fs.statSync(path)
     return true
   } catch {
     return false
@@ -46,10 +47,18 @@ function findExecutable(executable: string): string | null {
 
   // Fall back to where.exe
   try {
-    const result = execSync_DEPRECATED(`where.exe ${executable}`, {
+    const { stdout, exitCode } = execaSync('where.exe', [executable], {
       stdio: 'pipe',
       encoding: 'utf8',
-    }).trim()
+      shell: false,
+      reject: false,
+    })
+
+    if (exitCode !== 0 || !stdout) {
+      return null
+    }
+
+    const result = stdout.trim()
 
     // SECURITY: Filter out any results from the current directory
     // to prevent executing malicious git.bat/cmd/exe files

@@ -38,7 +38,7 @@ import {
   getDeferredToolsDeltaAttachment,
   getMcpInstructionsDeltaAttachment,
 } from '../../utils/attachments.js'
-import { getMemoryPath } from '../../utils/config.js'
+import { isMemoryFilePath } from '../../utils/claudemd.js'
 import { COMPACT_MAX_OUTPUT_TOKENS } from '../../utils/context.js'
 import {
   analyzeContext,
@@ -56,7 +56,6 @@ import {
   executePreCompactHooks,
 } from '../../utils/hooks.js'
 import { logError } from '../../utils/log.js'
-import { MEMORY_TYPE_VALUES } from '../../utils/memory/types.js'
 import {
   createCompactBoundaryMessage,
   createUserMessage,
@@ -1685,18 +1684,13 @@ function shouldExcludeFromPostCompactRestore(
   }
 
   // Exclude all types of claude.md files
-  // TODO: Refactor to use isMemoryFilePath() from claudemd.ts for consistency
-  // and to also match child directory memory files (.claude/rules/*.md, etc.)
+  // and match child directory memory files (.claude/rules/*.md, etc.)
   try {
-    const normalizedMemoryPaths = new Set(
-      MEMORY_TYPE_VALUES.map(type => expandPath(getMemoryPath(type))),
-    )
-
-    if (normalizedMemoryPaths.has(normalizedFilename)) {
+    if (isMemoryFilePath(normalizedFilename)) {
       return true
     }
   } catch {
-    // If we can't get memory paths, continue
+    // If we can't check memory path, continue
   }
 
   return false

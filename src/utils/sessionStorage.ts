@@ -4288,10 +4288,10 @@ export async function loadAllProjectsMessageLogsProgressive(
     .filter(dirent => dirent.isDirectory())
     .map(dirent => join(projectsDir, dirent.name))
 
-  const rawLogs: LogOption[] = []
-  for (const projectDir of projectDirs) {
-    rawLogs.push(...(await getSessionFilesLite(projectDir, limit)))
-  }
+  const rawLogsArrays = await Promise.all(
+    projectDirs.map(projectDir => getSessionFilesLite(projectDir, limit)),
+  )
+  const rawLogs = rawLogsArrays.flat()
   // Deduplicate — same session can appear in multiple project dirs
   const sorted = deduplicateLogsBySessionId(rawLogs)
 

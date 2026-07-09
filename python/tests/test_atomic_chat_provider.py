@@ -46,11 +46,13 @@ async def test_list_models_returns_ids():
 
 
 @pytest.mark.asyncio
-async def test_list_models_empty_on_failure():
+@patch("atomic_chat_provider.logger.warning")
+async def test_list_models_empty_on_failure(mock_warning):
     with patch("atomic_chat_provider.httpx.AsyncClient") as MockClient:
         MockClient.return_value.__aenter__.return_value.get = AsyncMock(side_effect=Exception("down"))
         models = await list_atomic_chat_models()
     assert models == []
+    mock_warning.assert_called_once_with("Could not list Atomic Chat models: down")
 
 
 @pytest.mark.asyncio

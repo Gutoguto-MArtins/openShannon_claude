@@ -73,6 +73,7 @@ type OauthConfig = {
   ROLES_URL: string
   CONSOLE_SUCCESS_URL: string
   CLAUDEAI_SUCCESS_URL: string
+  CLAUDEAI_ERROR_URL: string
   MANUAL_REDIRECT_URL: string
   CLIENT_ID: string
   OAUTH_FILE_SUFFIX: string
@@ -95,6 +96,8 @@ const PROD_OAUTH_CONFIG = {
     'https://platform.claude.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code',
   CLAUDEAI_SUCCESS_URL:
     'https://platform.claude.com/oauth/code/success?app=claude-code',
+  CLAUDEAI_ERROR_URL:
+    'https://platform.claude.com/oauth/code/error?app=claude-code',
   MANUAL_REDIRECT_URL: 'https://platform.claude.com/oauth/code/callback',
   CLIENT_ID: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
   // No suffix for production config
@@ -133,6 +136,8 @@ const STAGING_OAUTH_CONFIG =
           'https://platform.staging.ant.dev/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code',
         CLAUDEAI_SUCCESS_URL:
           'https://platform.staging.ant.dev/oauth/code/success?app=claude-code',
+        CLAUDEAI_ERROR_URL:
+          'https://platform.staging.ant.dev/oauth/code/error?app=claude-code',
         MANUAL_REDIRECT_URL:
           'https://platform.staging.ant.dev/oauth/code/callback',
         CLIENT_ID: '22422756-60c9-4084-8eb7-27705fd5cf9a',
@@ -165,6 +170,7 @@ function getLocalOauthConfig(): OauthConfig {
     ROLES_URL: `${api}/api/oauth/claude_cli/roles`,
     CONSOLE_SUCCESS_URL: `${consoleBase}/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code`,
     CLAUDEAI_SUCCESS_URL: `${consoleBase}/oauth/code/success?app=claude-code`,
+    CLAUDEAI_ERROR_URL: `${consoleBase}/oauth/code/error?app=claude-code`,
     MANUAL_REDIRECT_URL: `${consoleBase}/oauth/code/callback`,
     CLIENT_ID: '22422756-60c9-4084-8eb7-27705fd5cf9a',
     OAUTH_FILE_SUFFIX: '-local-oauth',
@@ -216,6 +222,7 @@ export function getOauthConfig(): OauthConfig {
       ROLES_URL: `${base}/api/oauth/claude_cli/roles`,
       CONSOLE_SUCCESS_URL: `${base}/oauth/code/success?app=claude-code`,
       CLAUDEAI_SUCCESS_URL: `${base}/oauth/code/success?app=claude-code`,
+      CLAUDEAI_ERROR_URL: `${base}/oauth/code/error?app=claude-code`,
       MANUAL_REDIRECT_URL: `${base}/oauth/code/callback`,
       OAUTH_FILE_SUFFIX: '-custom-oauth',
     }

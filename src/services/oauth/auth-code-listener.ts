@@ -111,8 +111,7 @@ export class AuthCodeListener {
   handleErrorRedirect(): void {
     if (!this.pendingResponse) return
 
-    // TODO: swap to a different url once we have an error page
-    const errorUrl = getOauthConfig().CLAUDEAI_SUCCESS_URL
+    const errorUrl = getOauthConfig().CLAUDEAI_ERROR_URL
 
     // Send browser to error page
     this.pendingResponse.writeHead(302, { Location: errorUrl })

@@ -94,6 +94,24 @@ def test_is_large_request_long():
     assert r.is_large_request(msgs) is True
 
 
+def test_is_large_request_empty():
+    r = make_router()
+    msgs = []
+    assert r.is_large_request(msgs) is False
+
+
+def test_is_large_request_exact_boundary():
+    r = make_router()
+    msgs = [{"role": "user", "content": "x" * 2000}]
+    assert r.is_large_request(msgs) is False
+
+
+def test_is_large_request_just_over_boundary():
+    r = make_router()
+    msgs = [{"role": "user", "content": "x" * 2001}]
+    assert r.is_large_request(msgs) is True
+
+
 # ── SmartRouter.select_provider() ────────────────────────────────────────────
 
 def test_select_provider_picks_best_score():

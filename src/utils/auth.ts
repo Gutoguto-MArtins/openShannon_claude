@@ -1,5 +1,4 @@
 import chalk from 'chalk'
-import { exec } from 'child_process'
 import { execa } from 'execa'
 import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
@@ -69,6 +68,7 @@ import {
   getMacOsKeychainStorageServiceName,
   getUsername,
 } from './secureStorage/macOsKeychainHelpers.js'
+import { tryParseShellCommand } from './bash/shellQuote.js'
 import {
   getSettings_DEPRECATED,
   getSettingsForSource,
@@ -652,55 +652,78 @@ async function runAwsAuthRefresh(): Promise<boolean> {
 // Long enough for browser-based SSO flows, short enough to prevent indefinite hangs.
 const AWS_AUTH_REFRESH_TIMEOUT_MS = 3 * 60 * 1000
 
-export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
+export async function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
   logForDebugging('Running AWS auth refresh command')
   // Start tracking authentication status
   const authStatusManager = AwsAuthStatusManager.getInstance()
   authStatusManager.startAuthentication()
 
-  return new Promise(resolve => {
-    const refreshProc = exec(awsAuthRefresh, {
-      timeout: AWS_AUTH_REFRESH_TIMEOUT_MS,
-    })
-    refreshProc.stdout!.on('data', data => {
-      const output = data.toString().trim()
-      if (output) {
-        // Add output to status manager for UI display
-        authStatusManager.addOutput(output)
-        // Also log for debugging
-        logForDebugging(output, { level: 'debug' })
-      }
-    })
+  const parseResult = tryParseShellCommand(awsAuthRefresh)
+  if (!parseResult.success) {
+    const error = 'Failed to parse awsAuthRefresh command'
+    authStatusManager.setError(error)
+    logForDebugging(error, { level: 'error' })
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 
-    refreshProc.stderr!.on('data', data => {
-      const error = data.toString().trim()
-      if (error) {
-        authStatusManager.setError(error)
-        logForDebugging(error, { level: 'error' })
-      }
-    })
+  const tokens = parseResult.tokens.filter(
+    (t): t is string => typeof t === 'string',
+  )
+  if (tokens.length === 0) {
+    const error = 'awsAuthRefresh command resolved to empty'
+    authStatusManager.setError(error)
+    logForDebugging(error, { level: 'error' })
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 
-    refreshProc.on('close', (code, signal) => {
-      if (code === 0) {
-        logForDebugging('AWS auth refresh completed successfully')
-        authStatusManager.endAuthentication(true)
-        void resolve(true)
-      } else {
-        const timedOut = signal === 'SIGTERM'
-        const message = timedOut
-          ? chalk.red(
-              'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
-            )
-          : chalk.red(
-              'Error running awsAuthRefresh (in settings or ~/.claude.json):',
-            )
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
-        console.error(message)
-        authStatusManager.endAuthentication(false)
-        void resolve(false)
-      }
-    })
+  const [executable, ...args] = tokens
+
+  const refreshProc = execa(executable, args, {
+    shell: false,
+    timeout: AWS_AUTH_REFRESH_TIMEOUT_MS,
+    reject: false,
   })
+
+  refreshProc.stdout?.on('data', data => {
+    const output = data.toString().trim()
+    if (output) {
+      // Add output to status manager for UI display
+      authStatusManager.addOutput(output)
+      // Also log for debugging
+      logForDebugging(output, { level: 'debug' })
+    }
+  })
+
+  refreshProc.stderr?.on('data', data => {
+    const error = data.toString().trim()
+    if (error) {
+      authStatusManager.setError(error)
+      logForDebugging(error, { level: 'error' })
+    }
+  })
+
+  const result = await refreshProc
+
+  if (result.exitCode === 0) {
+    logForDebugging('AWS auth refresh completed successfully')
+    authStatusManager.endAuthentication(true)
+    return true
+  } else {
+    const timedOut = result.timedOut
+    const message = timedOut
+      ? chalk.red(
+          'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
+        )
+      : chalk.red(
+          'Error running awsAuthRefresh (in settings or ~/.claude.json):',
+        )
+    // biome-ignore lint/suspicious/noConsole:: intentional console output
+    console.error(message)
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 }
 
 /**
@@ -919,56 +942,79 @@ async function runGcpAuthRefresh(): Promise<boolean> {
 // Long enough for browser-based auth flows, short enough to prevent indefinite hangs.
 const GCP_AUTH_REFRESH_TIMEOUT_MS = 3 * 60 * 1000
 
-export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
+export async function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
   logForDebugging('Running GCP auth refresh command')
   // Start tracking authentication status. AwsAuthStatusManager is cloud-provider-agnostic
   // despite the name — print.ts emits its updates as generic SDK 'auth_status' messages.
   const authStatusManager = AwsAuthStatusManager.getInstance()
   authStatusManager.startAuthentication()
 
-  return new Promise(resolve => {
-    const refreshProc = exec(gcpAuthRefresh, {
-      timeout: GCP_AUTH_REFRESH_TIMEOUT_MS,
-    })
-    refreshProc.stdout!.on('data', data => {
-      const output = data.toString().trim()
-      if (output) {
-        // Add output to status manager for UI display
-        authStatusManager.addOutput(output)
-        // Also log for debugging
-        logForDebugging(output, { level: 'debug' })
-      }
-    })
+  const parseResult = tryParseShellCommand(gcpAuthRefresh)
+  if (!parseResult.success) {
+    const error = 'Failed to parse gcpAuthRefresh command'
+    authStatusManager.setError(error)
+    logForDebugging(error, { level: 'error' })
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 
-    refreshProc.stderr!.on('data', data => {
-      const error = data.toString().trim()
-      if (error) {
-        authStatusManager.setError(error)
-        logForDebugging(error, { level: 'error' })
-      }
-    })
+  const tokens = parseResult.tokens.filter(
+    (t): t is string => typeof t === 'string',
+  )
+  if (tokens.length === 0) {
+    const error = 'gcpAuthRefresh command resolved to empty'
+    authStatusManager.setError(error)
+    logForDebugging(error, { level: 'error' })
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 
-    refreshProc.on('close', (code, signal) => {
-      if (code === 0) {
-        logForDebugging('GCP auth refresh completed successfully')
-        authStatusManager.endAuthentication(true)
-        void resolve(true)
-      } else {
-        const timedOut = signal === 'SIGTERM'
-        const message = timedOut
-          ? chalk.red(
-              'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
-            )
-          : chalk.red(
-              'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
-            )
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
-        console.error(message)
-        authStatusManager.endAuthentication(false)
-        void resolve(false)
-      }
-    })
+  const [executable, ...args] = tokens
+
+  const refreshProc = execa(executable, args, {
+    shell: false,
+    timeout: GCP_AUTH_REFRESH_TIMEOUT_MS,
+    reject: false,
   })
+
+  refreshProc.stdout?.on('data', data => {
+    const output = data.toString().trim()
+    if (output) {
+      // Add output to status manager for UI display
+      authStatusManager.addOutput(output)
+      // Also log for debugging
+      logForDebugging(output, { level: 'debug' })
+    }
+  })
+
+  refreshProc.stderr?.on('data', data => {
+    const error = data.toString().trim()
+    if (error) {
+      authStatusManager.setError(error)
+      logForDebugging(error, { level: 'error' })
+    }
+  })
+
+  const result = await refreshProc
+
+  if (result.exitCode === 0) {
+    logForDebugging('GCP auth refresh completed successfully')
+    authStatusManager.endAuthentication(true)
+    return true
+  } else {
+    const timedOut = result.timedOut
+    const message = timedOut
+      ? chalk.red(
+          'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
+        )
+      : chalk.red(
+          'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
+        )
+    // biome-ignore lint/suspicious/noConsole:: intentional console output
+    console.error(message)
+    authStatusManager.endAuthentication(false)
+    return false
+  }
 }
 
 /**

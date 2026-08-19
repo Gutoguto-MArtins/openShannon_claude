@@ -1011,12 +1011,13 @@ function StickyTracker({
       setStickyPrompt(null);
       return;
     }
-    // First paragraph only (split on blank line) — a prompt like
-    // "still seeing bugs:\n\n1. foo\n2. bar" previews as just the
-    // lead-in. trimStart so a leading blank line (queued_command mid-
-    // turn messages sometimes have one) doesn't find paraEnd at 0.
+    // First paragraph only (split on blank line or before a list item) —
+    // a prompt like "still seeing bugs:\n\n1. foo\n2. bar" or
+    // "still seeing bugs:\n1. foo" previews as just the lead-in.
+    // trimStart so a leading blank line (queued_command mid-turn
+    // messages sometimes have one) doesn't find paraEnd at 0.
     const trimmed = text.trimStart();
-    const paraEnd = trimmed.search(/\n\s*\n/);
+    const paraEnd = trimmed.search(/\n\s*\n|\n(?=\s*(?:[-*]|\d+\.)\s)/);
     const collapsed = (paraEnd >= 0 ? trimmed.slice(0, paraEnd) : trimmed).slice(0, STICKY_TEXT_CAP).replace(/\s+/g, ' ').trim();
     if (collapsed === '') {
       setStickyPrompt(null);

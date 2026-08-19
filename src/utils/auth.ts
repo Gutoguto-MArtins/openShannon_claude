@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import { exec } from 'child_process'
 import { execa } from 'execa'
+import { tryParseShellCommand } from './bash/shellQuote.js'
 import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
@@ -745,8 +746,27 @@ async function getAwsCredsFromCredentialExport(): Promise<{
     // only actually do the export if caller-identity calls
     try {
       logForDebugging('Running AWS credential export command')
-      const result = await execa(awsCredentialExport, {
-        shell: true,
+      const parseResult = tryParseShellCommand(
+        awsCredentialExport,
+        env => process.env[env] || '',
+      )
+
+      if (!parseResult.success) {
+        throw new Error(
+          `Failed to parse awsCredentialExport: ${parseResult.error}`,
+        )
+      }
+
+      const tokens = parseResult.tokens.filter(
+        (t): t is string => typeof t === 'string',
+      )
+
+      if (tokens.length === 0) {
+        throw new Error('awsCredentialExport resolved to an empty command')
+      }
+
+      const result = await execa(tokens[0], tokens.slice(1), {
+        shell: false,
         reject: false,
       })
       if (result.exitCode !== 0 || !result.stdout) {

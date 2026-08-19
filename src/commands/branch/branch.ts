@@ -179,19 +179,19 @@ async function createFork(customTitle?: string): Promise<{
 async function getUniqueForkName(baseName: string): Promise<string> {
   const candidateName = `${baseName} (Branch)`
 
-  // Check if this exact name already exists
-  const existingWithExactName = await searchSessionsByCustomTitle(
-    candidateName,
-    { exact: true },
+  // Search for all sessions that start with the base pattern
+  const existingForks = await searchSessionsByCustomTitle(`${baseName} (Branch`)
+
+  // Check if this exact name already exists in the fetched sessions
+  const hasExactMatch = existingForks.some(
+    session => session.customTitle?.trim() === candidateName,
   )
 
-  if (existingWithExactName.length === 0) {
+  if (!hasExactMatch) {
     return candidateName
   }
 
   // Name collision - find a unique numbered suffix
-  // Search for all sessions that start with the base pattern
-  const existingForks = await searchSessionsByCustomTitle(`${baseName} (Branch`)
 
   // Extract existing fork numbers to find the next available
   const usedNumbers = new Set<number>([1]) // Consider " (Branch)" as number 1

@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { exec } from 'child_process'
 import { execa } from 'execa'
 import { mkdir, stat } from 'fs/promises'
+import { tryParseShellCommand } from './bash/shellQuote.js'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
 import { CLAUDE_AI_PROFILE_SCOPE } from 'src/constants/oauth.js'
@@ -560,8 +561,17 @@ async function _executeApiKeyHelper(
     }
   }
 
-  const result = await execa(apiKeyHelper, {
-    shell: true,
+  const parsed = tryParseShellCommand(apiKeyHelper)
+  if (!parsed.success) {
+    throw new Error(`Failed to parse apiKeyHelper command: ${parsed.error}`)
+  }
+  const args = parsed.tokens.filter((t): t is string => typeof t === 'string')
+  if (args.length === 0) {
+    throw new Error('apiKeyHelper evaluated to an empty command')
+  }
+
+  const result = await execa(args[0], args.slice(1), {
+    shell: false,
     timeout: 10 * 60 * 1000,
     reject: false,
   })

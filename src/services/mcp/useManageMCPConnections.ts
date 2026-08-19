@@ -213,6 +213,24 @@ export function useManageMCPConnections(
   const pendingUpdatesRef = useRef<PendingUpdate[]>([])
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Helper to check if a server is disabled in the app state
+  // Checks pending updates first as they are the most recent before a flush
+  const isServerDisabledInAppState = useCallback(
+    (serverName: string) => {
+      const pendingUpdate = pendingUpdatesRef.current.findLast(
+        u => u.name === serverName,
+      )
+      if (pendingUpdate) {
+        return pendingUpdate.type === 'disabled'
+      }
+      const client = store
+        .getState()
+        .mcp.clients.find(c => c.name === serverName)
+      return client?.type === 'disabled'
+    },
+    [store],
+  )
+
   const flushPendingUpdates = useCallback(() => {
     flushTimerRef.current = null
     const updates = pendingUpdatesRef.current
@@ -339,11 +357,7 @@ export function useManageMCPConnections(
               )
             })
 
-            // TODO: This really isn't great: ideally we'd check appstate as the source of truth
-            // as to whether it was disconnected due to a disable, but appstate is stale at this
-            // point. Getting a live reference to appstate feels a little hacky, so we'll just
-            // check the disk state. We may want to refactor some of this.
-            if (isMcpServerDisabled(client.name)) {
+            if (isServerDisabledInAppState(client.name)) {
               logMCPDebug(
                 client.name,
                 `Server is disabled, skipping automatic reconnection`,
@@ -375,7 +389,7 @@ export function useManageMCPConnections(
                   attempt++
                 ) {
                   // Check if server was disabled while we were waiting
-                  if (isMcpServerDisabled(client.name)) {
+                  if (isServerDisabledInAppState(client.name)) {
                     logMCPDebug(
                       client.name,
                       `Server disabled during reconnection, stopping retry`,
@@ -1090,21 +1104,21 @@ export function useManageMCPConnections(
           reconnectTimersRef.current.delete(serverName)
         }
 
-        // Persist disabled state to disk FIRST before clearing cache
-        // This is important because the onclose handler checks disk state
+        // Persist disabled state to disk
         setMcpServerEnabled(serverName, false)
 
-        // Disabling: disconnect and clean up if currently connected
-        if (client.type === 'connected') {
-          await clearServerCache(serverName, client.config)
-        }
-
-        // Update to disabled state (tools/commands/resources auto-cleared)
+        // Update to disabled state immediately (tools/commands/resources auto-cleared)
+        // This is done before clearing the cache so the onclose handler sees the correct app state
         updateServer({
           name: serverName,
           type: 'disabled',
           config: client.config,
         })
+
+        // Disabling: disconnect and clean up if currently connected
+        if (client.type === 'connected') {
+          await clearServerCache(serverName, client.config)
+        }
       } else {
         // Enabling: persist enabled state to disk first
         setMcpServerEnabled(serverName, true)

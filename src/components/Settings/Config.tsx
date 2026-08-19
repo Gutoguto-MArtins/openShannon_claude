@@ -48,6 +48,7 @@ import { useSearchInput } from '../../hooks/useSearchInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { clearFastModeCooldown, FAST_MODE_MODEL_DISPLAY, isFastModeAvailable, isFastModeEnabled, getFastModeModel, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js';
+import { MCPSettings } from '../mcp/MCPSettings.js';
 type Props = {
   onClose: (result?: string, options?: {
     display?: CommandResultDisplay;
@@ -81,7 +82,7 @@ type Setting = (SettingBase & {
   onChange(value: string): void;
   type: 'managedEnum';
 });
-type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates';
+type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates' | 'MCPServers';
 export function Config({
   onClose,
   context,
@@ -260,10 +261,15 @@ export function Config({
     });
   }
 
-  // TODO: Add MCP servers
   const settingsItems: Setting[] = [
   // Global settings
   {
+    id: 'mcpServers',
+    label: 'MCP servers',
+    value: 'Manage',
+    type: 'managedEnum' as const,
+    onChange() {} // handled by toggleSetting function -> 'MCPServers'
+  }, {
     id: 'autoCompactEnabled',
     label: 'Auto-compact',
     value: globalConfig.autoCompactEnabled,
@@ -1316,7 +1322,7 @@ export function Config({
       }
       return;
     }
-    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language') {
+    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language' || setting_0.id === 'mcpServers') {
       // managedEnum items open a submenu — isDirty is set by the submenu's
       // completion callback, not here (submenu may be cancelled).
       switch (setting_0.id) {
@@ -1342,6 +1348,10 @@ export function Config({
           return;
         case 'language':
           setShowSubmenu('Language');
+          setTabsHidden(true);
+          return;
+        case 'mcpServers':
+          setShowSubmenu('MCPServers');
           setTabsHidden(true);
           return;
       }
@@ -1531,6 +1541,17 @@ export function Config({
         setShowSubmenu(null);
         setTabsHidden(false);
       }} />
+          <Text dimColor>
+            <Byline>
+              <KeyboardShortcutHint shortcut="Enter" action="confirm" />
+              <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+            </Byline>
+          </Text>
+        </> : showSubmenu === 'MCPServers' ? <>
+          <MCPSettings onComplete={() => {
+            setShowSubmenu(null);
+            setTabsHidden(false);
+          }} />
           <Text dimColor>
             <Byline>
               <KeyboardShortcutHint shortcut="Enter" action="confirm" />

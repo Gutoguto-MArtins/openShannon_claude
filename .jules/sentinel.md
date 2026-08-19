@@ -1,0 +1,4 @@
+## 2025-02-19 - Fix Command Injection in AWS/GCP Auth Refresh Vulnerability
+**Vulnerability:** User-configurable shell commands (`awsAuthRefresh` and `gcpAuthRefresh`) were vulnerable to command injection because they were passed directly as raw strings to Node's `child_process.exec`, which executes within a shell environment.
+**Learning:** Configurations holding shell commands can be easily exploited using shell injection operators (like `;`, `|`, `&&`) when using runtime functions that rely on a shell (e.g., `exec` or `execa` with `shell: true`).
+**Prevention:** Rather than directly executing user-supplied command strings, commands should be parsed into tokens safely using `tryParseShellCommand` and subsequently executed using `execa` with `shell: false`. This isolates the execution strictly to the binary and its arguments.

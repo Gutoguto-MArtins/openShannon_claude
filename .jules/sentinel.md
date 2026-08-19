@@ -1,0 +1,4 @@
+## 2024-05-18 - [Command Injection via Auth Helpers]
+**Vulnerability:** User-controlled configuration settings (e.g. `apiKeyHelper`, `awsCredentialExport`, `awsAuthRefresh`) were being evaluated via `execa` with `shell: true`, allowing command injection if malicious strings with shell operators (like `&&`) were supplied.
+**Learning:** Even configurations that seem like they might benefit from shell evaluation (like piping through other tools) must be executed safely, as the user environment can be untrusted. `shell: true` introduces a severe injection vector.
+**Prevention:** Always parse dynamic shell commands into string arrays using an established safe parser (e.g., `tryParseShellCommand` with token filtering) and execute them using `execa` with `shell: false`. Implement a fail-closed pattern rejecting inputs that cannot be safely converted to an executable and arguments.

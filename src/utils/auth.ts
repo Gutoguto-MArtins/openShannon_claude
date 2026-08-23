@@ -60,6 +60,7 @@ import * as lockfile from './lockfile.js'
 import { logError } from './log.js'
 import { memoizeWithTTLAsync } from './memoize.js'
 import { getSecureStorage } from './secureStorage/index.js'
+import { tryParseShellCommand } from './bash/shellQuote.js'
 import {
   clearLegacyApiKeyPrefetch,
   getLegacyApiKeyPrefetchResult,
@@ -560,8 +561,18 @@ async function _executeApiKeyHelper(
     }
   }
 
-  const result = await execa(apiKeyHelper, {
-    shell: true,
+  const parseResult = tryParseShellCommand(apiKeyHelper)
+  if (!parseResult.success) {
+    throw new Error(`Failed to parse apiKeyHelper command: ${parseResult.error}`)
+  }
+  const args = parseResult.tokens.filter((t): t is string => typeof t === 'string')
+  const executable = args.shift()
+  if (!executable) {
+    throw new Error('apiKeyHelper command is empty')
+  }
+
+  const result = await execa(executable, args, {
+    shell: false,
     timeout: 10 * 60 * 1000,
     reject: false,
   })
@@ -659,10 +670,31 @@ export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
   authStatusManager.startAuthentication()
 
   return new Promise(resolve => {
-    const refreshProc = exec(awsAuthRefresh, {
+    const parseResult = tryParseShellCommand(awsAuthRefresh)
+    if (!parseResult.success) {
+      logForDebugging(`Failed to parse awsAuthRefresh command: ${parseResult.error}`, { level: 'error' })
+      authStatusManager.setError(parseResult.error)
+      authStatusManager.endAuthentication(false)
+      resolve(false)
+      return
+    }
+    const args = parseResult.tokens.filter((t): t is string => typeof t === 'string')
+    const executable = args.shift()
+    if (!executable) {
+      logForDebugging('awsAuthRefresh command is empty', { level: 'error' })
+      authStatusManager.setError('awsAuthRefresh command is empty')
+      authStatusManager.endAuthentication(false)
+      resolve(false)
+      return
+    }
+
+    const refreshProc = execa(executable, args, {
+      shell: false,
       timeout: AWS_AUTH_REFRESH_TIMEOUT_MS,
+      reject: false,
     })
-    refreshProc.stdout!.on('data', data => {
+
+    refreshProc.stdout?.on('data', (data: Buffer | string) => {
       const output = data.toString().trim()
       if (output) {
         // Add output to status manager for UI display
@@ -672,7 +704,7 @@ export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
       }
     })
 
-    refreshProc.stderr!.on('data', data => {
+    refreshProc.stderr?.on('data', (data: Buffer | string) => {
       const error = data.toString().trim()
       if (error) {
         authStatusManager.setError(error)
@@ -745,8 +777,18 @@ async function getAwsCredsFromCredentialExport(): Promise<{
     // only actually do the export if caller-identity calls
     try {
       logForDebugging('Running AWS credential export command')
-      const result = await execa(awsCredentialExport, {
-        shell: true,
+      const parseResult = tryParseShellCommand(awsCredentialExport)
+      if (!parseResult.success) {
+        throw new Error(`Failed to parse awsCredentialExport command: ${parseResult.error}`)
+      }
+      const args = parseResult.tokens.filter((t): t is string => typeof t === 'string')
+      const executable = args.shift()
+      if (!executable) {
+        throw new Error('awsCredentialExport command is empty')
+      }
+
+      const result = await execa(executable, args, {
+        shell: false,
         reject: false,
       })
       if (result.exitCode !== 0 || !result.stdout) {
@@ -927,10 +969,31 @@ export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
   authStatusManager.startAuthentication()
 
   return new Promise(resolve => {
-    const refreshProc = exec(gcpAuthRefresh, {
+    const parseResult = tryParseShellCommand(gcpAuthRefresh)
+    if (!parseResult.success) {
+      logForDebugging(`Failed to parse gcpAuthRefresh command: ${parseResult.error}`, { level: 'error' })
+      authStatusManager.setError(parseResult.error)
+      authStatusManager.endAuthentication(false)
+      resolve(false)
+      return
+    }
+    const args = parseResult.tokens.filter((t): t is string => typeof t === 'string')
+    const executable = args.shift()
+    if (!executable) {
+      logForDebugging('gcpAuthRefresh command is empty', { level: 'error' })
+      authStatusManager.setError('gcpAuthRefresh command is empty')
+      authStatusManager.endAuthentication(false)
+      resolve(false)
+      return
+    }
+
+    const refreshProc = execa(executable, args, {
+      shell: false,
       timeout: GCP_AUTH_REFRESH_TIMEOUT_MS,
+      reject: false,
     })
-    refreshProc.stdout!.on('data', data => {
+
+    refreshProc.stdout?.on('data', (data: Buffer | string) => {
       const output = data.toString().trim()
       if (output) {
         // Add output to status manager for UI display
@@ -940,7 +1003,7 @@ export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
       }
     })
 
-    refreshProc.stderr!.on('data', data => {
+    refreshProc.stderr?.on('data', (data: Buffer | string) => {
       const error = data.toString().trim()
       if (error) {
         authStatusManager.setError(error)

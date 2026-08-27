@@ -1,0 +1,6 @@
+## 2025-02-27 - [Command Injection via Environment Variable Shell String Interpolation]
+**Vulnerability:** Shell commands (e.g. `xclip`, `osascript`, `powershell`, `rm`) in `src/utils/imagePaste.ts` were interpolating `screenshotPath` (which was derived from the `CLAUDE_CODE_TMPDIR` environment variable) directly into shell commands running under `execa(..., {shell: true})`. This created a critical command injection vulnerability if the user supplied a maliciously crafted path in the `CLAUDE_CODE_TMPDIR` environment variable.
+**Learning:** Even if an input comes from a local environment variable, we must treat it as untrusted user input when constructing shell commands, especially when `shell: true` is enabled. String interpolation in shell commands is fundamentally unsafe.
+**Prevention:**
+1. Prefer natively passing variables through environment variables to shell scripts (e.g. `> "$SCREENSHOT_PATH"` or `system attribute "SCREENSHOT_PATH"`), and supply the variable via the `env` argument in `execa` (e.g., `env: { ...process.env, SCREENSHOT_PATH: screenshotPath }`).
+2. Where possible, bypass shell commands entirely in favor of native programmatic APIs (e.g., replacing `rm -f "$screenshotPath"` with `getFsImplementation().unlink(screenshotPath).catch(() => {})`).

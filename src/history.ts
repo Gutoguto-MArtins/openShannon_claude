@@ -265,12 +265,14 @@ async function resolveStoredPastedContent(
 async function logEntryToHistoryEntry(entry: LogEntry): Promise<HistoryEntry> {
   const pastedContents: Record<number, PastedContent> = {}
 
-  for (const [id, stored] of Object.entries(entry.pastedContents || {})) {
-    const resolved = await resolveStoredPastedContent(stored)
-    if (resolved) {
-      pastedContents[Number(id)] = resolved
-    }
-  }
+  await Promise.all(
+    Object.entries(entry.pastedContents || {}).map(async ([id, stored]) => {
+      const resolved = await resolveStoredPastedContent(stored)
+      if (resolved) {
+        pastedContents[Number(id)] = resolved
+      }
+    }),
+  )
 
   return {
     display: entry.display,
